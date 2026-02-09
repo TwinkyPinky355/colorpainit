@@ -691,111 +691,126 @@ document.addEventListener('DOMContentLoaded', function() {
         return sortedColors.slice(0, 5);
     }
     
-    // Создание элемента цвета для отображения
-    function createColorElement(colorInfo, isBase = false) {
-        const colorElement = document.createElement('div');
-        colorElement.className = `color-item ${isBase ? 'base-color' : ''}`;
-        colorElement.title = `Кликните, чтобы применить цвет ${colorInfo.code}`;
-        
-        const darkenedColor = darkenColor(colorInfo.hex, 15);
-        
-        colorElement.innerHTML = `
-            <div class="color-preview" style="background-color: ${darkenedColor};"></div>
-            <div class="color-info">
-                <div class="color-code">${colorInfo.code}</div>
-                <div class="color-catalog">${currentPickerCatalog.toUpperCase()}</div>
-            </div>
-        `;
-        
-        colorElement.addEventListener('click', () => {
-            // Устанавливаем значение в поле ввода
-            if (colorCodeInput) {
-                colorCodeInput.value = colorInfo.code;
-            }
-            
-            // Устанавливаем текущий каталог
-            currentCatalog = currentPickerCatalog;
-            
-            // Обновляем активные кнопки каталога
-            catalogButtons.forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.getAttribute('data-catalog') === currentPickerCatalog) {
-                    btn.classList.add('active');
-                }
-            });
-            
-            // Обновляем название цвета
-            updateColorName();
-            
-            // Применяем цвет к стене
-            applyWallColorWithSections();
-        });
-        
-        return colorElement;
-    }
+// Создание элемента цвета для отображения
+function createColorElement(colorInfo, isBase = false) {
+    const colorElement = document.createElement('div');
+    colorElement.className = `color-item ${isBase ? 'base-color' : ''}`;
     
-    // Отображение подобранных цветов
-    function displayPickedColors(colors, baseColor) {
-        colorsGrid.innerHTML = '';
-        
-        if (!colors || colors.length === 0) {
-            colorsGrid.innerHTML = '<div class="no-colors">Цвета не найдены</div>';
-            return;
+    // Используем код цвета или показываем "Неизвестно"
+    const colorCode = colorInfo.code || 'Неизвестно';
+    const catalogCode = currentPickerCatalog.toUpperCase();
+    
+    const darkenedColor = darkenColor(colorInfo.hex, 15);
+    
+    colorElement.innerHTML = `
+        <div class="color-preview" style="background-color: ${darkenedColor};"></div>
+        <div class="color-info">
+            <div class="color-code">${colorCode}</div>
+            <div class="color-catalog">${catalogCode}</div>
+        </div>
+    `;
+    
+    colorElement.title = `Кликните, чтобы применить цвет ${colorCode}`;
+    
+    colorElement.addEventListener('click', () => {
+        // Устанавливаем значение в поле ввода
+        if (colorCodeInput) {
+            colorCodeInput.value = colorInfo.code;
         }
         
-        // Добавляем базовый цвет
+        // Устанавливаем текущий каталог
+        currentCatalog = currentPickerCatalog;
+        
+        // Обновляем активные кнопки каталога
+        catalogButtons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.getAttribute('data-catalog') === currentPickerCatalog) {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Обновляем название цвета
+        updateColorName();
+        
+        // Применяем цвет к стене
+        applyWallColorWithSections();
+    });
+    
+    return colorElement;
+}
+    
+   // Отображение подобранных цветов
+function displayPickedColors(colors, baseColor) {
+    colorsGrid.innerHTML = '';
+    
+    if (!colors || colors.length === 0) {
+        colorsGrid.innerHTML = '<div class="no-colors">Цвета не найдены</div>';
+        return;
+    }
+    
+    // Добавляем базовый цвет только если он был передан и имеет код
+    if (baseColor && baseColor.code) {
         const baseColorElement = createColorElement(baseColor, true);
         colorsGrid.appendChild(baseColorElement);
-        
-        // Добавляем подобранные цвета
-        colors.forEach(color => {
-            const colorElement = createColorElement(color, false);
-            colorsGrid.appendChild(colorElement);
-        });
     }
     
-    // Основная функция подбора цветов
-    function pickColors() {
-        const colorCode = colorPickerInput.value.trim();
-        
-        if (!colorCode) {
-            updateStatus('Введите код цвета для подбора');
-            return;
-        }
-        
-        const baseColor = getColorFromCatalog(currentPickerCatalog, colorCode);
-        
-        if (!baseColor) {
-            updateStatus(`Цвет ${colorCode} не найден в каталоге ${currentPickerCatalog.toUpperCase()}`);
-            colorsGrid.innerHTML = '<div class="no-colors">Цвет не найден в каталоге</div>';
-            return;
-        }
-        
-        let pickedColors = [];
-        
-        switch (currentMode) {
-            case 'similar':
-                pickedColors = findSimilarColors(baseColor, currentPickerCatalog);
-                updateStatus(`Подобраны похожие цвета для ${currentPickerCatalog.toUpperCase()} ${colorCode}`);
-                break;
-                
-            case 'contrast':
-                pickedColors = findContrastColors(baseColor, currentPickerCatalog);
-                updateStatus(`Подобраны контрастные цвета для ${currentPickerCatalog.toUpperCase()} ${colorCode}`);
-                break;
-                
-            case 'monochrome':
-                pickedColors = findMonochromeColors(baseColor, currentPickerCatalog);
-                updateStatus(`Подобраны монохромные цвета для ${currentPickerCatalog.toUpperCase()} ${colorCode}`);
-                break;
-                
-            default:
-                pickedColors = findSimilarColors(baseColor, currentPickerCatalog);
-                updateStatus(`Подобраны похожие цвета для ${currentPickerCatalog.toUpperCase()} ${colorCode}`);
-        }
-        
-        displayPickedColors(pickedColors, baseColor);
+    // Добавляем подобранные цвета
+    colors.forEach(color => {
+        const colorElement = createColorElement(color, false);
+        colorsGrid.appendChild(colorElement);
+    });
+}
+    
+// Основная функция подбора цветов
+function pickColors() {
+    const colorCode = colorPickerInput.value.trim();
+    
+    if (!colorCode) {
+        updateStatus('Введите код цвета для подбора');
+        return;
     }
+    
+    const baseColor = getColorFromCatalog(currentPickerCatalog, colorCode);
+    
+    if (!baseColor) {
+        updateStatus(`Цвет ${colorCode} не найден в каталоге ${currentPickerCatalog.toUpperCase()}`);
+        colorsGrid.innerHTML = '<div class="no-colors">Цвет не найден в каталоге</div>';
+        return;
+    }
+    
+    // Создаем объект базового цвета с кодом
+    const baseColorWithCode = {
+        code: colorCode,
+        hex: baseColor.hex,
+        nameRu: baseColor.nameRu,
+        nameEn: baseColor.nameEn
+    };
+    
+    let pickedColors = [];
+    
+    switch (currentMode) {
+        case 'similar':
+            pickedColors = findSimilarColors(baseColorWithCode, currentPickerCatalog);
+            updateStatus(`Подобраны похожие цвета для ${currentPickerCatalog.toUpperCase()} ${colorCode}`);
+            break;
+            
+        case 'contrast':
+            pickedColors = findContrastColors(baseColorWithCode, currentPickerCatalog);
+            updateStatus(`Подобраны контрастные цвета для ${currentPickerCatalog.toUpperCase()} ${colorCode}`);
+            break;
+            
+        case 'monochrome':
+            pickedColors = findMonochromeColors(baseColorWithCode, currentPickerCatalog);
+            updateStatus(`Подобраны монохромные цвета для ${currentPickerCatalog.toUpperCase()} ${colorCode}`);
+            break;
+            
+        default:
+            pickedColors = findSimilarColors(baseColorWithCode, currentPickerCatalog);
+            updateStatus(`Подобраны похожие цвета для ${currentPickerCatalog.toUpperCase()} ${colorCode}`);
+    }
+    
+    displayPickedColors(pickedColors, baseColorWithCode);
+}
     
     // Вспомогательная функция для получения всех цветов из каталога
     function getAllColorsFromCatalog(catalog) {
